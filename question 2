@@ -1,0 +1,86 @@
+install.packages("WDI")
+library(WDI)
+WDIsearch("gdp.*capita.*PPP")
+
+#search for data (CO2 per capita)
+WDIsearch("CO2.*capita")
+
+#download the data with two indicators(NY.GDP.PCAP.KD && EN.ATM.CO2E.PC) 
+#from 2010 in 2010, save the data as wdi_data
+wdi_data <- WDI(indicator=c("NY.GDP.PCAP.PP.KD","EN.ATM.CO2E.PC"),start=2010,end=2010,extra=TRUE)
+wdi_data = as_tibble(wdi_data)
+glimpse(wdi_data)
+
+#rename two indicators in wdi_data)
+wdi_data <- wdi_data %>%
+  rename(GDPpercap=NY.GDP.PCAP.PP.KD,Emit_CO2percap=EN.ATM.CO2E.PC)
+glimpse(wdi_data)
+
+#export the wdi_data to csv file with command readr, and read it as wdi in global environment
+library(readr)
+write_csv(wdi_data,"wdi_CO2_GDP.csv")
+wdi <- read_csv("wdi_CO2_GDP.csv")
+
+summary(wdi$GDPpercap)
+
+#HISTOGRAM for GDPpercap : positive skew histogram
+ggplot(wdi,aes(x=GDPpercap))+geom_histogram()
+
+#BOXPLOT for GDPpercap: we can see variability 
+#in north America is very small, 
+#but huge variability in East Asia & Pacific
+ggplot(wdi,aes(y=GDPpercap,x=region))+geom_boxplot()+coord_flip()+scale_y_log10()
+
+#Scaterplot for GDPpercap and Emit_CO2percap: 
+#For the region with higher GDPpercap, 
+#Emit CO2per cap will be higher as well
+gg1 <- ggplot(wdi,aes(x=GDPpercap,y=Emit_CO2percap))+geom_point()
+gg1
+#add smooth line and scale the x & y value
+gg2 <- gg1+geom_smooth(se=FALSE)+scale_x_log10()+scale_y_log10()
+gg2
+
+#create the map of the world,and put co2 data into it
+install.packages("maps")
+library(maps)
+dat_map<-map_data("world")
+
+dim(dat_map)
+head(dat_map)
+
+#map of the world
+ggplot(dat_map,aes(x=long,y=lat,group=group))+geom_polygon(fill="white",colour="black")
+
+#load package countrycode: 
+#Converts long country names into one of many 
+#different coding schemes.
+install.packages("countrycode")
+library(countrycode)
+
+#make the world bank data can talk to world map data
+dat_map$ccode <- countrycode(dat_map$region,origin="country.name",destination="wb")
+
+#push the world bank dataset into world map dataset
+wdi$ccode <- countrycode(wdi$country,origin="country.name",destination="wb")
+
+#merge two databases
+merged <- full_join(dat_map, wdi, by="ccode")
+
+#plot the data again
+ggplot(merged,aes(x=long,y=lat,group=group,fill=Emit_CO2percap))+geom_polygon()
+
+
+##########question 2 b##########
+install.packages("devtools")
+install_github("DougLuke/UserNetR")
+library(devtools)
+library(UserNetR)
+library(statnet)
+op <- par(mar = c(0,0,0,0))
+plot(Bali,displaylabels=TRUE,labal.cex=0.8,pad=0.4,labal.col="darkblue")
+par(op)
+
+
+###########question 2 c############
+rolelab <- get.vertex.attribute(Bali,"role")
+plot(Bali,usearrows=FALSE,label=rolelab,displaylabels=T,label.col="darkbule")
